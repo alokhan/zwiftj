@@ -1,0 +1,7 @@
+syntax = "proto2";
+package api.model;
+
+option java_package = "org.zwiftj.api.model";
+message PerSessionInfo {
+	required string relay_url = 1;
+}
