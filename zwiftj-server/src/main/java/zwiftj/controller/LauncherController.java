@@ -1,10 +1,8 @@
 package zwiftj.controller;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -20,7 +18,13 @@ public class LauncherController {
     @GetMapping({"/launcher", "/launcher/realms/zwift/protocol/openid-connect/auth", "/launcher/realms/zwift/protocol/openid-connect/registrations",
     "/auth/realms/zwift/protocol/openid-connect/auth", "/auth/realms/zwift/login-actions/request/login", "/auth/realms/zwift/protocol/openid-connect/registrations",
     "/auth/realms/zwift/login-actions/startriding", "/auth/realms/zwift/tokens/login", "/auth/realms/zwift/tokens/registrations"})
-    public void launcherStart(HttpServletResponse httpServletResponse){
+    public void launcherStartGet(HttpServletResponse httpServletResponse){
+        httpServletResponse.setHeader("Location", "/login/");
+        httpServletResponse.setStatus(302);
+    }
+
+    @PostMapping("/auth/realms/zwift/login-actions/request/login")
+    public void launcherStartPost(HttpServletResponse httpServletResponse) {
         httpServletResponse.setHeader("Location", "/login/");
         httpServletResponse.setStatus(302);
     }
@@ -31,9 +35,15 @@ public class LauncherController {
         return "http://zwift/?code=zwift_refresh_token" + REFRESH_TOKEN ;
     }
 
-    @GetMapping("/start-zwift")
+    @PostMapping("/start-zwift")
     public void zwiftStart(HttpServletResponse httpServletResponse){
         httpServletResponse.setHeader("Location", "/ride");
         httpServletResponse.setStatus(302);
+    }
+
+    @PostMapping("/auth/realms/zwift/tokens/access/codes")
+    public ResponseEntity zwiftTokenAccessCodes(HttpServletResponse httpServletResponse) {
+        String json = "AccessCodes";
+        return ResponseEntity.ok(json);
     }
 }
