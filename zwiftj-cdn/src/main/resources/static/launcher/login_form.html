@@ -6,7 +6,7 @@
   <a href="/forgot" class="btn btn-sm btn-secondary">Forgot password</a>
   <div class="row">
     <div class="col-sm-6 col-md-5">
-      <form id="login" action="/login/" method="post" class="top-buffer">
+      <form id="login" action="{{ url_for('login') }}" method="post" class="top-buffer">
         <div class="row">
           <div class="col-md-12">
             <label class="text-shadow">Username</label>
