@@ -1,7 +1,5 @@
 syntax = "proto2";
-package api.model;
-
-option java_package = "org.zwiftj.api.model";
+package zwiftj.api.model;
 
 message World {
 	required uint32 id = 1;

@@ -1,7 +1,5 @@
 syntax = "proto2";
-package api.model;
-
-option java_package = "org.zwiftj.api.model";
+package zwiftj.api.model;
 message HashSeed {
 	required uint64 seed1 = 1;
 	required uint64 seed2 = 2;

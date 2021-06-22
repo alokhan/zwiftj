@@ -34,7 +34,9 @@ public class LoginController {
     }
 
     @PostMapping(value = "/login")
-    public String loginPost(@RequestParam Map<String, String> allRequestParams) {
+    public String loginPost(Model model, @RequestParam Map<String, String> allRequestParams) {
+        String userName = allRequestParams.get("username");
+        model.addAttribute("username", userName);
         return "user_home";
     }
 }

@@ -1,6 +1,5 @@
-syntax = "proto2";package api.model;
-
-option java_package = "org.zwiftj.api.model";
+syntax = "proto2";
+package zwiftj.api.model;
 
 message ZFile {
     required uint64 id = 1;
