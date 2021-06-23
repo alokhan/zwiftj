@@ -77,6 +77,8 @@ public class ApiController {
 
     @GetMapping("/api/profiles/me")
     public ProfileOuterClass.Profile profile(HttpServletResponse response) {
+        response.setContentType("application/x-protobuf");
+
         return ProfileOuterClass.Profile.newBuilder()
                 .setAge(25)
                 .setId(1)
@@ -89,6 +91,8 @@ public class ApiController {
 
     @GetMapping("/api/profiles")
     public ProfileOuterClass.Profiles profiles(HttpServletResponse response) {
+        response.setContentType("application/x-protobuf");
+
         return ProfileOuterClass.Profiles.newBuilder().addProfiles(ProfileOuterClass.Profile.newBuilder()
                 .setAge(25)
                 .setId(1)
@@ -119,7 +123,9 @@ public class ApiController {
     }
 
     @GetMapping("/api/profiles/{playerId}/goals")
-    public GoalOuterClass.Goals getGoal() {
+    public GoalOuterClass.Goals getGoal(HttpServletResponse response) {
+        response.setContentType("application/x-protobuf");
+
         return GoalOuterClass.Goals.newBuilder().addGoals(GoalOuterClass.Goal.newBuilder().setId(1).setName("test goal").build()).build();
     }
 
@@ -129,22 +135,28 @@ public class ApiController {
     }
 
     @PutMapping("/api/profiles/{playerId}")
-    public void updateProfile() {
-
+    public void updateProfile(HttpServletResponse response) {
+        response.setStatus(204);
     }
 
     @GetMapping("/relay/dropin")
-    public WorldOuterClass.Worlds dropin() {
+    public WorldOuterClass.Worlds dropin(HttpServletResponse response) {
+        response.setContentType("application/x-protobuf");
+
         return relayWorldsGeneric();
     }
 
     @GetMapping("/relay/worlds")
-    public WorldOuterClass.Worlds relayWorlds() {
+    public WorldOuterClass.Worlds relayWorlds(HttpServletResponse response) {
+        response.setContentType("application/x-protobuf");
+
         return relayWorldsGeneric();
     }
 
     @GetMapping("/relay/worlds/{worldId}")
-    public WorldOuterClass.Worlds relayWorldsById() {
+    public WorldOuterClass.Worlds relayWorldsById(HttpServletResponse response) {
+        response.setContentType("application/x-protobuf");
+
         return relayWorldsGeneric();
     }
 
@@ -168,15 +180,19 @@ public class ApiController {
     }
 
     @GetMapping("/relay/periodic-info")
-    public PeriodicInfoOuterClass.PeriodicInfos periodicInfo() {
+    public PeriodicInfoOuterClass.PeriodicInfos periodicInfo(HttpServletResponse response) {
+        response.setContentType("application/x-protobuf");
+
         return PeriodicInfoOuterClass.PeriodicInfos.newBuilder().addInfos(PeriodicInfoOuterClass.PeriodicInfo.newBuilder().setGameServerIp(udpServerIp)
                 .setF2(3022).setF3(10).setF4(60).setF5(30).setF6(3).build()).build();
     }
 
     private WorldOuterClass.Worlds relayWorldsGeneric() {
         return WorldOuterClass.Worlds.newBuilder()
-                .addWorlds(WorldOuterClass.World.newBuilder().setId(1).setF3(6).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Watopia").build())
-                .addWorlds(WorldOuterClass.World.newBuilder().setId(2).setF3(14).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("La France").build())
+                .addWorlds(WorldOuterClass.World.newBuilder().setId(1).setF3(6).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Watopia").build())
+                .addWorlds(WorldOuterClass.World.newBuilder().setId(1).setF3(14).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("France").build())
+                .addWorlds(WorldOuterClass.World.newBuilder().setId(1).setF3(2).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Richmond").build())
+
                 .build();
     }
 
