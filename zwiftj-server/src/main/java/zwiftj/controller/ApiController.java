@@ -2,13 +2,15 @@ package zwiftj.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import zwiftj.api.model.*;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Instant;
 
 @RestController
@@ -28,7 +30,7 @@ public class ApiController {
     public LoginResponseOuterClass.LoginResponse authPost(HttpServletResponse response) {
 
         logger.info("Got Auth request");
-        LoginResponseOuterClass.LoginResponse loginResponse =  LoginResponseOuterClass.LoginResponse.newBuilder()
+        LoginResponseOuterClass.LoginResponse loginResponse = LoginResponseOuterClass.LoginResponse.newBuilder()
                 .setSessionState("abc")
                 .setInfo(LoginResponseOuterClass.ServerInfo.newBuilder()
                         .setNodes(LoginResponseOuterClass.UDPNodes.newBuilder()
@@ -64,8 +66,14 @@ public class ApiController {
 
     @GetMapping("/api/zfiles")
     public Zfiles.ZFile zFiles(HttpServletResponse response) {
+        response.setContentType("application/x-protobuf");
         return Zfiles.ZFile.newBuilder().setFilename("dummy.txt").setFolder("logfiles").setId(1L)
                 .setTimestamp(Instant.now().getEpochSecond()).build();
+    }
+
+    @GetMapping("/api/zfile/list")
+    public String zFilesList(HttpServletResponse response) {
+        return "";
     }
 
     @GetMapping("/api/telemetry/config")
@@ -78,15 +86,21 @@ public class ApiController {
     @GetMapping("/api/profiles/me")
     public ProfileOuterClass.Profile profile(HttpServletResponse response) {
         response.setContentType("application/x-protobuf");
-
-        return ProfileOuterClass.Profile.newBuilder()
-                .setAge(25)
-                .setId(1)
-                .setIsMale(true)
-                .setEmail("email@email.com")
-                .setFirstName("first name")
-                .setLastName("last name")
-                .build();
+        try {
+            byte[] file = getProfileFromFile();
+            return ProfileOuterClass.Profile.parseFrom(file);
+        } catch (IOException e) {
+            return ProfileOuterClass.Profile.newBuilder()
+                    .setAge(25)
+                    .setId(1)
+                    .setAchievementLevel(50)
+                    .setIsConnectedToStrava(0)
+                    .setIsMale(true)
+                    .setEmail("email@email.com")
+                    .setFirstName("first name")
+                    .setLastName("last name")
+                    .build();
+        }
     }
 
     @GetMapping("/api/profiles")
@@ -104,7 +118,9 @@ public class ApiController {
     }
 
     @GetMapping("/api/tcp-config")
-    public PeriodicInfoOuterClass.PeriodicInfos tcpConfig() {
+    public PeriodicInfoOuterClass.PeriodicInfos tcpConfig(HttpServletResponse response) {
+        response.setContentType("application/x-protobuf");
+
         return PeriodicInfoOuterClass.PeriodicInfos.newBuilder()
                 .addInfos(PeriodicInfoOuterClass.PeriodicInfo.newBuilder()
                         .setF2(udpServerPort)
@@ -139,25 +155,42 @@ public class ApiController {
         response.setStatus(204);
     }
 
+    @GetMapping("/download/profile.bin")
+    public ResponseEntity<byte[]> downloadProfile(HttpServletResponse httpServletResponse) {
+        try {
+            byte[] file = getProfileFromFile();
+            return ResponseEntity.ok()
+                    .contentLength(file.length)
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(file);
+        } catch (IOException e) {
+            logger.error("Failed to get player profile", e);
+            return null;
+        }
+    }
+
+    private byte[] getProfileFromFile() throws IOException {
+        return Files.readAllBytes(Paths.get("C:\\Users\\alo\\Downloads\\storage\\1\\profile.bin"));
+    }
+
     @GetMapping("/relay/dropin")
     public WorldOuterClass.Worlds dropin(HttpServletResponse response) {
         response.setContentType("application/x-protobuf");
-
         return relayWorldsGeneric();
     }
 
     @GetMapping("/relay/worlds")
     public WorldOuterClass.Worlds relayWorlds(HttpServletResponse response) {
         response.setContentType("application/x-protobuf");
-
         return relayWorldsGeneric();
     }
 
     @GetMapping("/relay/worlds/{worldId}")
-    public WorldOuterClass.Worlds relayWorldsById(HttpServletResponse response) {
+    public WorldOuterClass.Worlds relayWorldsById(@PathVariable int worldId, HttpServletResponse response) {
         response.setContentType("application/x-protobuf");
-
-        return relayWorldsGeneric();
+        return WorldOuterClass.Worlds.newBuilder()
+                .addWorlds(WorldOuterClass.World.newBuilder().setId(worldId).build())
+                .build();
     }
 
     @GetMapping("/relay/worlds/{worldId}/join")
@@ -190,9 +223,10 @@ public class ApiController {
     private WorldOuterClass.Worlds relayWorldsGeneric() {
         return WorldOuterClass.Worlds.newBuilder()
                 .addWorlds(WorldOuterClass.World.newBuilder().setId(1).setF3(6).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Watopia").build())
-                .addWorlds(WorldOuterClass.World.newBuilder().setId(1).setF3(14).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("France").build())
-                .addWorlds(WorldOuterClass.World.newBuilder().setId(1).setF3(2).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Richmond").build())
-
+                .addWorlds(WorldOuterClass.World.newBuilder().setId(1).setF3(14).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Watopia").build())
+                .addWorlds(WorldOuterClass.World.newBuilder().setId(1).setF3(2).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Watopia").build())
+                .addWorlds(WorldOuterClass.World.newBuilder().setId(2).setF3(14).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("La France").build())
+                .addWorlds(WorldOuterClass.World.newBuilder().setId(3).setF3(14).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Other shiit").build())
                 .build();
     }
 

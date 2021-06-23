@@ -7,11 +7,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,7 +50,7 @@ public class LauncherController {
 
     @GetMapping("/ride")
     @ResponseStatus(HttpStatus.FOUND)
-    public void zwiftStart(HttpServletResponse httpServletResponse, @CookieValue("remember_token") String rememberToken) {
+    public void zwiftRide(HttpServletResponse httpServletResponse, @CookieValue("remember_token") String rememberToken) {
         logger.info("Got request to ride zwift");
         httpServletResponse.setStatus(302);
         try {
@@ -76,10 +80,74 @@ public class LauncherController {
     }
 
     @PostMapping("/start-zwift")
-    public void zwiftStart(HttpServletResponse httpServletResponse) {
-        logger.info("Got request to start zwift");
-        httpServletResponse.setHeader("Location", "/ride");
-        httpServletResponse.setStatus(302);
+    public void zwiftStart(HttpServletResponse httpServletResponse, @RequestParam String map) {
+        logger.info("Got request to start zwift with map {}", map);
+        if (map.equals("CALENDAR")) {
+            httpServletResponse.setHeader("Location", "/ride");
+            httpServletResponse.setStatus(302);
+        } else {
+            Cookie cookie = new Cookie("selected_map", map);
+            cookie.setDomain(".zwift.com");
+
+            httpServletResponse.addHeader("Location", "/ride");
+            httpServletResponse.addHeader("Cookie", generateHeader(cookie));
+            httpServletResponse.setStatus(302);
+            httpServletResponse.addCookie(cookie);
+        }
+    }
+
+    public String generateHeader(Cookie cookie) {
+
+        // Can't use StringBuilder due to DateFormat
+        StringBuffer header = new StringBuffer();
+
+        // TODO: Name validation takes place in Cookie and cannot be configured
+        //       per Context. Moving it to here would allow per Context config
+        //       but delay validation until the header is generated. However,
+        //       the spec requires an IllegalArgumentException on Cookie
+        //       generation.
+        header.append(cookie.getName());
+        header.append('=');
+        String value = cookie.getValue();
+        if (value != null && value.length() > 0) {
+            header.append(value);
+        }
+
+        // RFC 6265 prefers Max-Age to Expires but... (see below)
+        int maxAge = cookie.getMaxAge();
+        if (maxAge > -1) {
+            // Negative Max-Age is equivalent to no Max-Age
+            header.append("; Max-Age=");
+            header.append(maxAge);
+
+            // Microsoft IE and Microsoft Edge don't understand Max-Age so send
+            // expires as well. Without this, persistent cookies fail with those
+            // browsers. See http://tomcat.markmail.org/thread/g6sipbofsjossacn
+
+
+        }
+
+        String domain = cookie.getDomain();
+        if (domain != null && domain.length() > 0) {
+            header.append("; Domain=");
+            header.append(domain);
+        }
+
+        String path = cookie.getPath();
+        if (path != null && path.length() > 0) {
+            header.append("; Path=");
+            header.append(path);
+        }
+
+        if (cookie.getSecure()) {
+            header.append("; Secure");
+        }
+
+        if (cookie.isHttpOnly()) {
+            header.append("; HttpOnly");
+        }
+
+        return header.toString();
     }
 
     @PostMapping("/auth/realms/zwift/tokens/access/codes")
