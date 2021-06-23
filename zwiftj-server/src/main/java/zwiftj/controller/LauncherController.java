@@ -1,38 +1,30 @@
 package zwiftj.controller;
 
 import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 public class LauncherController {
 
-    public static final Logger logger = LoggerFactory.getLogger(LauncherController.class);
-
-
-    private final static String REFRESH_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJiYjQ4czgyOS03NDgzLTQzbzEtbzg1NC01ZDc5M3E1bjAwbjgiLCJleHAiOjIxNDc0ODM2NDcsIm5iZiI6MCwiaWF0IjoxNTM1NTA4MDg3LCJpc3MiOiJodHRwczovL3NlY3VyZS56d2lmdC5jb20vYXV0aC9yZWFsbXMvendpZnQiLCJhdWQiOiJHYW1lX0xhdW5jaGVyIiwic3ViIjoiMDJyM2RlYjUtbnE5cS00NzZzLTlzczAtMDM0cTk3N3NwMnIxIiwidHlwIjoiUmVmcmVzaCIsImF6cCI6IkdhbWVfTGF1bmNoZXIiLCJhdXRoX3RpbWUiOjAsInNlc3Npb25fc3RhdGUiOiIwODQ2bm85bi03NjVxLTRwM3MtbjIwcC02cG5wOXI4NnI1czMiLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiZXZlcnlib2R5IiwidHJpYWwtc3Vic2NyaWJlciIsImV2ZXJ5b25lIiwiYmV0YS10ZXN0ZXIiXX0sInJlc291cmNlX2FjY2VzcyI6eyJteS16d2lmdCI6eyJyb2xlcyI6WyJhdXRoZW50aWNhdGVkLXVzZXIiXX0sIkdhbWVfTGF1bmNoZXIiOnsicm9sZXMiOlsiYXV0aGVudGljYXRlZC11c2VyIl19LCJad2lmdCBSRVNUIEFQSSAtLSBwcm9kdWN0aW9uIjp7InJvbGVzIjpbImF1dGhvcml6ZWQtcGxheWVyIiwiYXV0aGVudGljYXRlZC11c2VyIl19LCJad2lmdCBaZW5kZXNrIjp7InJvbGVzIjpbImF1dGhlbnRpY2F0ZWQtdXNlciJdfSwiWndpZnQgUmVsYXkgUkVTVCBBUEkgLS0gcHJvZHVjdGlvbiI6eyJyb2xlcyI6WyJhdXRob3JpemVkLXBsYXllciJdfSwiZWNvbS1zZXJ2ZXIiOnsicm9sZXMiOlsiYXV0aGVudGljYXRlZC11c2VyIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19fQ.2Md_w8ewShyAq9TitzxHv7ohQ7wQq_Z1oh1iGXR8gNU";
-
-    private final static String ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJiYjQ4czgyOS03NDgzLTQzbzEtbzg1NC01ZDc5M3E1bjAwbjkiLCJleHAiOjIxNDc0ODM2NDcsIm5iZiI6MCwiaWF0IjoxNTM1NTA4MDg3LCJpc3MiOiJodHRwczovL3NlY3VyZS56d2lmdC5jb20vYXV0aC9yZWFsbXMvendpZnQiLCJhdWQiOiJHYW1lX0xhdW5jaGVyIiwic3ViIjoiMDJyM2RlYjUtbnE5cS00NzZzLTlzczAtMDM0cTk3N3NwMnIxIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoiR2FtZV9MYXVuY2hlciIsImF1dGhfdGltZSI6MTUzNTUwNzI0OSwic2Vzc2lvbl9zdGF0ZSI6IjA4NDZubzluLTc2NXEtNHAzcy1uMjBwLTZwbnA5cjg2cjVzMyIsImFjciI6IjAiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cHM6Ly9sYXVuY2hlci56d2lmdC5jb20qIiwiaHR0cDovL3p3aWZ0Il0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJldmVyeWJvZHkiLCJ0cmlhbC1zdWJzY3JpYmVyIiwiZXZlcnlvbmUiLCJiZXRhLXRlc3RlciJdfSwicmVzb3VyY2VfYWNjZXNzIjp7Im15LXp3aWZ0Ijp7InJvbGVzIjpbImF1dGhlbnRpY2F0ZWQtdXNlciJdfSwiR2FtZV9MYXVuY2hlciI6eyJyb2xlcyI6WyJhdXRoZW50aWNhdGVkLXVzZXIiXX0sIlp3aWZ0IFJFU1QgQVBJIC0tIHByb2R1Y3Rpb24iOnsicm9sZXMiOlsiYXV0aG9yaXplZC1wbGF5ZXIiLCJhdXRoZW50aWNhdGVkLXVzZXIiXX0sIlp3aWZ0IFplbmRlc2siOnsicm9sZXMiOlsiYXV0aGVudGljYXRlZC11c2VyIl19LCJad2lmdCBSZWxheSBSRVNUIEFQSSAtLSBwcm9kdWN0aW9uIjp7InJvbGVzIjpbImF1dGhvcml6ZWQtcGxheWVyIl19LCJlY29tLXNlcnZlciI6eyJyb2xlcyI6WyJhdXRoZW50aWNhdGVkLXVzZXIiXX0sImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sIm5hbWUiOiJad2lmdCBPZmZsaW5lIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiem9mZmxpbmVAdHV0YW5vdGEuY29tIiwiZ2l2ZW5fbmFtZSI6Ilp3aWZ0IiwiZmFtaWx5X25hbWUiOiJPZmZsaW5lIiwiZW1haWwiOiJ6b2ZmbGluZUB0dXRhbm90YS5jb20ifQ.clrW88C2NWOtj8eCcWkWYK1sDtKLS5v7c_nf6YY03Ww";
-
-    private final static String ID_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJiYjQ4czgyOS03NDgzLTQzbzEtbzg1NC01ZDc5M3E1bjAwbjciLCJleHAiOjIxNDc0ODM2NDcsIm5iZiI6MCwiaWF0IjoxNTM1NTA4MDg3LCJpc3MiOiJodHRwczovL3NlY3VyZS56d2lmdC5jb20vYXV0aC9yZWFsbXMvendpZnQiLCJhdWQiOiJHYW1lX0xhdW5jaGVyIiwic3ViIjoiMDJyM2RlYjUtbnE5cS00NzZzLTlzczAtMDM0cTk3N3NwMnIxIiwidHlwIjoiSUQiLCJhenAiOiJHYW1lX0xhdW5jaGVyIiwiYXV0aF90aW1lIjoxNTM1NTA3MjQ5LCJzZXNzaW9uX3N0YXRlIjoiMDg0Nm5vOW4tNzY1cS00cDNzLW4yMHAtNnBucDlyODZyNXMzIiwiYWNyIjoiMCIsIm5hbWUiOiJad2lmdCBPZmZsaW5lIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiem9mZmxpbmVAdHV0YW5vdGEuY29tIiwiZ2l2ZW5fbmFtZSI6Ilp3aWZ0IiwiZmFtaWx5X25hbWUiOiJPZmZsaW5lIiwiZW1haWwiOiJ6b2ZmbGluZUB0dXRhbm90YS5jb20ifQ.rWGSvv5TFO-i6LKczHNUUcB87Hfd5ow9IMG9O5EGR4Y";
-
-    private final static String FAKE_JWT = "{\"access_token\":\"" + ACCESS_TOKEN +
-            "\",\"expires_in\":1000021600,\"refresh_expires_in\":611975560,\"refresh_token\":\"" + REFRESH_TOKEN + "\",\"token_type\":\"bearer\",\"id_token\":\"" + ID_TOKEN + "\",\"not-before-policy\":1408478984,\"session_state\":\"0846ab9a-765d-4c3f-a20c-6cac9e86e5f3\",\"scope\":\"\"}";
+    private static final Logger logger = LoggerFactory.getLogger(LauncherController.class);
+    private Algorithm algorithm = Algorithm.HMAC256("nosecret");
 
     @GetMapping({"/launcher", "/launcher/realms/zwift/protocol/openid-connect/auth", "/launcher/realms/zwift/protocol/openid-connect/registrations",
             "/auth/realms/zwift/protocol/openid-connect/auth", "/auth/realms/zwift/login-actions/request/login", "/auth/realms/zwift/protocol/openid-connect/registrations",
@@ -50,23 +42,93 @@ public class LauncherController {
 
     @GetMapping("/ride")
     @ResponseStatus(HttpStatus.FOUND)
-    public void zwiftRide(HttpServletResponse httpServletResponse, @CookieValue("remember_token") String rememberToken) {
+    public void zwiftRide(HttpServletResponse httpServletResponse, @CookieValue(value = "remember_token", required = false) String rememberToken) {
         logger.info("Got request to ride zwift");
         httpServletResponse.setStatus(302);
         try {
-            byte[] json = this.getClass().getResourceAsStream("/token.json").readAllBytes();
-            Map<String, Object> result = new ObjectMapper().readValue(json, HashMap.class);
-            Algorithm algorithm = Algorithm.HMAC256("nosecret");
-            String refresh_token = JWT.create()
-                    .withPayload(result)
-                    .sign(algorithm);
 
+            String refresh_token = this.generateRefreshToken();
             httpServletResponse.setHeader("Location", "http://zwift/?code=zwift_refresh_token" + refresh_token);
 
         } catch (JWTCreationException | IOException exception) {
             logger.error("Failed to generate refresh token", exception);
             httpServletResponse.setStatus(404);
         }
+    }
+
+    private String generateAccessToken() throws IOException {
+        return this.generateBaseTokenBuilder()
+                .withClaim("name", "super name")
+                .withClaim("given_name", "super name")
+                .withClaim("family_name", "family name")
+                .withClaim("email", "email@mail.com")
+                .withClaim("auth_time", Instant.now().toEpochMilli())
+                .withClaim("typ", "Bearer").sign(algorithm);
+    }
+
+    private String generateIdToken() {
+        return JWT.create()
+                .withNotBefore(Date.from(Instant.now()))
+                .withIssuedAt(Date.from(Instant.now()))
+                .withJWTId(UUID.randomUUID().toString())
+                .withExpiresAt(Date.from(Instant.now().plus(20, ChronoUnit.DAYS)))
+                .withClaim("aud", "Game_Launcher")
+                .withClaim("azp", "Game_Launcher")
+                .withClaim("typ", "ID")
+                .withClaim("sub", UUID.randomUUID().toString())
+                .withClaim("acr", 0)
+                .withClaim("name", "super name")
+                .withClaim("given_name", "super name")
+                .withClaim("family_name", "family name")
+                .withClaim("email", "email@mail.com")
+                .withClaim("auth_time", Instant.now().toEpochMilli())
+                .withIssuer("https://secure.zwift.com/auth/realms/zwift")
+                .withClaim("session_state", UUID.randomUUID().toString())
+                .sign(algorithm);
+    }
+
+    private String generateRefreshToken() throws IOException {
+        return this.generateBaseTokenBuilder().sign(algorithm);
+    }
+
+    private JWTCreator.Builder generateBaseTokenBuilder() {
+        Map<String, String[]> rolesMap = new HashMap<>();
+        String[] roles = new String[]{"everybody",
+                "trial-subscriber",
+                "everyone",
+                "beta-tester"};
+        rolesMap.put("roles", roles);
+
+
+        Map<String, String[]> authenticatedMap = new HashMap<>();
+        String[] authenticatedRoles = new String[]{"authenticated-user", "authorized-player"};
+        authenticatedMap.put("roles", authenticatedRoles);
+
+        Map<String, Map<String, String[]>> resourceMap = new HashMap<>();
+        resourceMap.put("my-zwift", authenticatedMap);
+        resourceMap.put("Game_Launcher", authenticatedMap);
+        resourceMap.put("Zwift REST API -- production", authenticatedMap);
+        resourceMap.put("Zwift Zendesk", authenticatedMap);
+        resourceMap.put("Zwift Relay REST API -- production", authenticatedMap);
+        resourceMap.put("ecom-server", authenticatedMap);
+
+        Map<String, String[]> accountMap = new HashMap<>();
+        String[] accountRoles = new String[]{"manage-account", "manage-account-links", "view-profile"};
+        accountMap.put("roles", accountRoles);
+        resourceMap.put("account", accountMap);
+
+        return JWT.create()
+                .withNotBefore(Date.from(Instant.now()))
+                .withIssuedAt(Date.from(Instant.now()))
+                .withJWTId(UUID.randomUUID().toString())
+                .withExpiresAt(Date.from(Instant.now().plus(20, ChronoUnit.DAYS)))
+                .withClaim("aud", "Game_Launcher")
+                .withClaim("azp", "Game_Launcher")
+                .withClaim("typ", "Refresh")
+                .withClaim("realm_access", rolesMap)
+                .withClaim("resource_access", resourceMap)
+                .withIssuer("https://secure.zwift.com/auth/realms/zwift")
+                .withClaim("session_state", UUID.randomUUID().toString());
     }
 
     @PostMapping("/auth/rb_bf03269xbi")
@@ -76,7 +138,16 @@ public class LauncherController {
 
     @PostMapping("/auth/realms/zwift/protocol/openid-connect/token")
     private String openIdConnect(HttpServletResponse httpServletResponse) {
-        return FAKE_JWT;
+        try {
+            return "{\"access_token\":\"" + this.generateAccessToken() +
+                    "\",\"expires_in\":1000021600,\"refresh_expires_in\":611975560,\"refresh_token\":\"" +
+                    this.generateRefreshToken() + "\",\"token_type\":\"bearer\",\"id_token\":\"" +
+                    this.generateIdToken() + "\",\"not-before-policy\":1408478984,\"session_state\":\"0846ab9a-765d-4c3f-a20c-6cac9e86e5f3\",\"scope\":\"\"}";
+
+        } catch (IOException e) {
+            logger.error("Failed to generate openid token", e);
+            throw new RuntimeException("Failed to generate openid token");
+        }
     }
 
     @PostMapping("/start-zwift")
