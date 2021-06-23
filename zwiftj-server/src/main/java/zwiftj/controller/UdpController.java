@@ -14,9 +14,8 @@ public class UdpController {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(UdpController.class);
 
-    public byte[] handleMessage(@Payload byte[] payload, @Headers Map<String, Object> headers) {
+    public void handleMessage(@Payload byte[] payload, @Headers Map<String, Object> headers) {
         String messageContent = new String(payload);
         LOGGER.info("Received UDP message: {}", messageContent);
-        return payload;
     }
 }

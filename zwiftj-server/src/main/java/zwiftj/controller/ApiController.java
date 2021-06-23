@@ -12,14 +12,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @RestController
 public class ApiController {
 
     public static final Logger logger = LoggerFactory.getLogger(ApiController.class);
 
-    private final int udpServerPort = 3022;
-    private final String udpServerIp = "127.0.0.1";
+    private final int tcpServerPort = 3023;
+    private final String tcpServerIp = "127.0.0.1";
 
     @GetMapping("/api/auth")
     public String auth() {
@@ -34,7 +35,9 @@ public class ApiController {
                 .setSessionState("abc")
                 .setInfo(LoginResponseOuterClass.ServerInfo.newBuilder()
                         .setNodes(LoginResponseOuterClass.UDPNodes.newBuilder()
-                                .addNode(LoginResponseOuterClass.UDPNode.newBuilder().setIp(udpServerIp).setPort(udpServerPort).build())
+                                .addNode(LoginResponseOuterClass.UDPNode.newBuilder()
+                                        .setIp(tcpServerIp)
+                                        .setPort(tcpServerPort).build())
                                 .build())
                         .setRelayUrl("https://us-or-rly101.zwift.com/relay")
                         .setApis(LoginResponseOuterClass.APIs.newBuilder().setTrainingpeaksUrl("https://api.trainingpeaks.com").build())
@@ -123,8 +126,8 @@ public class ApiController {
 
         return PeriodicInfoOuterClass.PeriodicInfos.newBuilder()
                 .addInfos(PeriodicInfoOuterClass.PeriodicInfo.newBuilder()
-                        .setF2(udpServerPort)
-                        .setGameServerIp(udpServerIp).build())
+                        .setF2(tcpServerPort)
+                        .setGameServerIp(tcpServerIp).build())
                 .build();
     }
 
@@ -153,6 +156,50 @@ public class ApiController {
     @PutMapping("/api/profiles/{playerId}")
     public void updateProfile(HttpServletResponse response) {
         response.setStatus(204);
+    }
+
+    @GetMapping("/api/profiles/{playerId}/activities")
+    public ActivityOuterClass.Activities getActivitiesForPlayer(HttpServletResponse response) {
+        response.setContentType("application/x-protobuf");
+        return ActivityOuterClass.Activities.newBuilder()
+                .addActivities(ActivityOuterClass.Activity.newBuilder()
+                        .setId(1)
+                        .setPlayerId(1)
+                        .setF3(0)
+                        .setStartDate(Instant.now().minus(1, ChronoUnit.DAYS).toString())
+                        .setName("super activity")
+                        .setAvgWatts(500)
+                        .build()).build();
+    }
+
+    @GetMapping("/api/private_event/feed")
+    public EventsOuterClass.Events getPrivateEvents(HttpServletResponse response) {
+        response.setContentType("application/x-protobuf");
+
+        return EventsOuterClass.Events.newBuilder().addEvents(EventsOuterClass.Event.newBuilder()
+                .setDescription("event description")
+                .setEventStart(Instant.now().plus(1, ChronoUnit.MINUTES).getEpochSecond())
+                .setMapId(1)
+                .setId(2000)
+                .addCategory(EventsOuterClass.Category.newBuilder().setId(2001).setRouteId(947394567)
+                        .setStartLocation(1).build())
+                .setTitle("GIGA EVENT")
+                .build()).build();
+    }
+
+    @GetMapping("/api/events/search")
+    public EventsOuterClass.Events getEvents(HttpServletResponse response) {
+        response.setContentType("application/x-protobuf");
+
+        return EventsOuterClass.Events.newBuilder().addEvents(EventsOuterClass.Event.newBuilder()
+                .setDescription("event description")
+                .setEventStart(Instant.now().plus(1, ChronoUnit.MINUTES).getEpochSecond())
+                .setMapId(1)
+                .setId(2000)
+                .addCategory(EventsOuterClass.Category.newBuilder().setId(2001).setRouteId(947394567)
+                        .setStartLocation(1).build())
+                .setTitle("GIGA EVENT")
+                .build()).build();
     }
 
     @GetMapping("/download/profile.bin")
@@ -216,17 +263,24 @@ public class ApiController {
     public PeriodicInfoOuterClass.PeriodicInfos periodicInfo(HttpServletResponse response) {
         response.setContentType("application/x-protobuf");
 
-        return PeriodicInfoOuterClass.PeriodicInfos.newBuilder().addInfos(PeriodicInfoOuterClass.PeriodicInfo.newBuilder().setGameServerIp(udpServerIp)
+        return PeriodicInfoOuterClass.PeriodicInfos.newBuilder().addInfos(PeriodicInfoOuterClass.PeriodicInfo.newBuilder()
+                .setGameServerIp(tcpServerIp)
                 .setF2(3022).setF3(10).setF4(60).setF5(30).setF6(3).build()).build();
     }
 
     private WorldOuterClass.Worlds relayWorldsGeneric() {
         return WorldOuterClass.Worlds.newBuilder()
-                .addWorlds(WorldOuterClass.World.newBuilder().setId(1).setF3(6).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Watopia").build())
-                .addWorlds(WorldOuterClass.World.newBuilder().setId(1).setF3(14).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Watopia").build())
+                .addWorlds(WorldOuterClass.World.newBuilder().setId(1)
+                        .addPacePartnerStates(WorldOuterClass.Player.newBuilder().setId(1).setLastName("cucu").setFirstName("coucou").build())
+                        .setF3(6).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Watopia").build())
+                .addWorlds(WorldOuterClass.World.newBuilder().setId(1)
+                        .addPacePartnerStates(WorldOuterClass.Player.newBuilder().setId(1).setLastName("cucu").setFirstName("coucou").build())
+                        .setF3(14).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Watopia").build())
                 .addWorlds(WorldOuterClass.World.newBuilder().setId(1).setF3(2).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Watopia").build())
                 .addWorlds(WorldOuterClass.World.newBuilder().setId(2).setF3(14).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("La France").build())
-                .addWorlds(WorldOuterClass.World.newBuilder().setId(3).setF3(14).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Other shiit").build())
+                .addWorlds(WorldOuterClass.World.newBuilder().setId(3)
+                        .addPacePartnerStates(WorldOuterClass.Player.newBuilder().setId(1).setLastName("cucu").setFirstName("coucou").build())
+                        .setF3(14).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Other shiit").build())
                 .build();
     }
 
