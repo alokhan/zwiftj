@@ -1,0 +1,16 @@
+{application, zwiftj_udptcp,
+ [{description, "Zwiftj TCP and UDP server"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, {zwiftj_udptcp_app, []}},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+  {modules,[zwiftj_udptcp_app,tcp_server_handler,
+   tcp_server_listener,tcp_server_sup]},
+
+  {licenses, ["Apache 2.0"]},
+  {links, []}
+ ]}.
