@@ -13,6 +13,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 public class ApiController {
@@ -21,6 +23,22 @@ public class ApiController {
 
     private final int tcpServerPort = 3023;
     private final String tcpServerIp = "127.0.0.1";
+    private final Map<Integer, String> courses = new HashMap<>();
+
+    public ApiController() {
+        courses.put(2, "Richmond");
+        courses.put(4, "Unknown");
+        courses.put(6, "Watopia");
+        courses.put(7, "London");
+        courses.put(8, "New York");
+        courses.put(9, "Innsbruck");
+        courses.put(10, "Bologna");
+        courses.put(11, "Yorkshire");
+        courses.put(12, "Crit City");
+        courses.put(13, "Makuri Islands");
+        courses.put(14, "France");
+        courses.put(15, "Paris");
+    }
 
     @GetMapping("/api/auth")
     public String auth() {
@@ -137,8 +155,8 @@ public class ApiController {
     }
 
     @GetMapping("/api/profiles/{playerId}/followees")
-    public void followers() {
-
+    public String followers() {
+        return "";
     }
 
     @GetMapping("/api/profiles/{playerId}/goals")
@@ -233,16 +251,14 @@ public class ApiController {
     }
 
     @GetMapping("/relay/worlds/{worldId}")
-    public WorldOuterClass.Worlds relayWorldsById(@PathVariable int worldId, HttpServletResponse response) {
+    public WorldOuterClass.World relayWorldsById(@PathVariable int worldId, HttpServletResponse response) {
         response.setContentType("application/x-protobuf");
-        return WorldOuterClass.Worlds.newBuilder()
-                .addWorlds(WorldOuterClass.World.newBuilder().setId(worldId).build())
-                .build();
+        return WorldOuterClass.World.newBuilder().setId(worldId).build();
     }
 
-    @GetMapping("/relay/worlds/{worldId}/join")
+    @PostMapping("/relay/worlds/{worldId}/join")
     public String worldJoin() {
-        return "{\"worldTime\": \"" + Instant.now().getEpochSecond() + "\"}";
+        return "{\"worldTime\": \"" + getWorldTime() + "\"}";
     }
 
     @GetMapping("/relay/worlds/{worldId}/my-hash-seeds")
@@ -255,8 +271,23 @@ public class ApiController {
         response.setContentType("application/x-protobuf");
 
         return HashSeedsOuterClass.HashSeeds.newBuilder()
-                .addSeeds(HashSeedsOuterClass.HashSeed.newBuilder().setSeed1((long) Math.random()).setSeed2((long) Math.random())
-                        .setExpiryDate(Instant.now().getEpochSecond() + (10800 + 1200) * 1000).build()).build();
+                .addSeeds(HashSeedsOuterClass.HashSeed.newBuilder()
+                        .setSeed1((long) Math.random())
+                        .setSeed2((long) Math.random())
+                        .setExpiryDate(this.getWorldTime() + (10800 + 1200) * 1000).build())
+                .addSeeds(HashSeedsOuterClass.HashSeed.newBuilder()
+                        .setSeed1((long) Math.random())
+                        .setSeed2((long) Math.random())
+                        .setExpiryDate(getWorldTime() + (10800 + 2*1200) * 1000).build())
+                .addSeeds(HashSeedsOuterClass.HashSeed.newBuilder()
+                        .setSeed1((long) Math.random())
+                        .setSeed2((long) Math.random())
+                        .setExpiryDate(getWorldTime() + (10800 + 3*1200) * 1000).build())
+                .addSeeds(HashSeedsOuterClass.HashSeed.newBuilder()
+                        .setSeed1((long) Math.random())
+                        .setSeed2((long) Math.random())
+                        .setExpiryDate(getWorldTime() + (10800 + 4*1200) * 1000).build())
+                .build();
     }
 
     @GetMapping("/relay/periodic-info")
@@ -269,19 +300,18 @@ public class ApiController {
     }
 
     private WorldOuterClass.Worlds relayWorldsGeneric() {
-        return WorldOuterClass.Worlds.newBuilder()
-                .addWorlds(WorldOuterClass.World.newBuilder().setId(1)
-                        .addPacePartnerStates(WorldOuterClass.Player.newBuilder().setId(1).setLastName("cucu").setFirstName("coucou").build())
-                        .setF3(6).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Watopia").build())
-                .addWorlds(WorldOuterClass.World.newBuilder().setId(1)
-                        .addPacePartnerStates(WorldOuterClass.Player.newBuilder().setId(1).setLastName("cucu").setFirstName("coucou").build())
-                        .setF3(14).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Watopia").build())
-                .addWorlds(WorldOuterClass.World.newBuilder().setId(1).setF3(2).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Watopia").build())
-                .addWorlds(WorldOuterClass.World.newBuilder().setId(2).setF3(14).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("La France").build())
-                .addWorlds(WorldOuterClass.World.newBuilder().setId(3)
-                        .addPacePartnerStates(WorldOuterClass.Player.newBuilder().setId(1).setLastName("cucu").setFirstName("coucou").build())
-                        .setF3(14).setRealTime(Instant.now().getEpochSecond()).setWorldTime(Instant.now().getEpochSecond()).setF5(0).setName("Other shiit").build())
-                .build();
+        WorldOuterClass.Worlds.Builder builder = WorldOuterClass.Worlds.newBuilder();
+        courses.forEach((k, v) -> {
+            builder.addWorlds(WorldOuterClass.World.newBuilder().setId(1).setName("Public Watopia")
+                    .addPacePartnerStates(WorldOuterClass.Player.newBuilder().setId(1).setLastName("cucu").setFirstName("coucou").build())
+                    .setF3(k).setRealTime(Instant.now().getEpochSecond())
+                    .setWorldTime(getWorldTime()).setF5(0).build());
+        });
+        return builder.build();
+    }
+
+    public static long getWorldTime(){
+        return (Instant.now().getEpochSecond()-1414016075) * 1000;
     }
 
 }

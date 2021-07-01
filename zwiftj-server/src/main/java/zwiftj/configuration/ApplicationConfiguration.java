@@ -9,16 +9,22 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
+import org.springframework.integration.annotation.InboundChannelAdapter;
+import org.springframework.integration.annotation.Poller;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.annotation.Transformer;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlows;
+import org.springframework.integration.ip.IpHeaders;
 import org.springframework.integration.ip.dsl.Tcp;
 import org.springframework.integration.ip.dsl.Udp;
+import org.springframework.integration.ip.tcp.TcpOutboundGateway;
 import org.springframework.integration.ip.tcp.serializer.TcpCodecs;
 import org.springframework.integration.ip.udp.UnicastReceivingChannelAdapter;
 import org.springframework.integration.ip.udp.UnicastSendingMessageHandler;
+import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.Message;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.web.servlet.config.annotation.*;
@@ -72,11 +78,11 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
         converters.add(new ProtobufHttpMessageConverter());
     }
 
-    @Bean
-    public IntegrationFlow udpServer(UdpController udpController) {
-        return IntegrationFlows.from(Udp.inboundAdapter(3022))
-                .channel("udpChannel").get();
-    }
+//    @Bean
+//    public IntegrationFlow udpServer(UdpController udpController) {
+//        return IntegrationFlows.from(Udp.inboundAdapter(3022))
+//                .channel("udpChannel").get();
+//    }
 
     @ServiceActivator(inputChannel = "udpChannel")
     public void handleMessage(byte[] message) {
@@ -97,13 +103,14 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
         logger.info("Received UDP packet {}", protoBufMessage);
     }
 
-    @Bean
-    public IntegrationFlow tcpServer(TcpController serverSocketHandler) {
-        return IntegrationFlows.from(Tcp.inboundGateway(
-                Tcp.netServer(3023)
-                        .deserializer(TcpCodecs.lengthHeader2())
-                        .serializer(TcpCodecs.lengthHeader2())))
-                .handle(serverSocketHandler::handleMessage)
-                .get();
-    }
+//    @Bean
+//    public IntegrationFlow tcpServer(TcpController serverSocketHandler) {
+//        return IntegrationFlows.from(Tcp.inboundGateway(
+//                Tcp.netServer(3023)
+//                        .deserializer(TcpCodecs.lengthHeader2())
+//                        .serializer(TcpCodecs.lengthHeader2())))
+//                .channel("tcpChannel")
+//                .handle(serverSocketHandler::handleMessage)
+//                .get();
+//    }
 }

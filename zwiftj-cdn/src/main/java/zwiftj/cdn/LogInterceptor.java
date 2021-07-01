@@ -18,7 +18,8 @@ public class LogInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         final ContentCachingRequestWrapper wrapper = new ContentCachingRequestWrapper(request);
-        logger.info("REQ!!!! {}", wrapper.getReader().lines().collect(Collectors.joining(System.lineSeparator())));
+        logger.info("REQ!!!! {} {} {}", wrapper.getReader().lines().collect(Collectors.joining(System.lineSeparator())),
+                request.getRequestURI(), request.getMethod());
         return true;
     }
 }

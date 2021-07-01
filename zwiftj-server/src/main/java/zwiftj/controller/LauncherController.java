@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Instant;
@@ -157,11 +158,12 @@ public class LauncherController {
             httpServletResponse.setHeader("Location", "/ride");
             httpServletResponse.setStatus(302);
         } else {
+            //TODO fix this using redirect to CDN first
             Cookie cookie = new Cookie("selected_map", map);
             cookie.setDomain(".zwift.com");
 
-            httpServletResponse.addHeader("Location", "/ride");
             httpServletResponse.addHeader("Cookie", generateHeader(cookie));
+            httpServletResponse.addHeader("Location", "/ride");
             httpServletResponse.setStatus(302);
             httpServletResponse.addCookie(cookie);
         }
